@@ -131,6 +131,53 @@ body{margin:0;background:var(--bg);color:var(--text)}
   .brand p{font-size:12px}
   .topright{font-size:16px}
 }
+
+.part2-launch{
+  width:100%;
+  margin:0 0 18px;
+  padding:18px 22px;
+  border-radius:14px;
+  border:2px solid #ffd166;
+  background:#ffd166;
+  color:#172033;
+  font-size:24px;
+  font-weight:950;
+  letter-spacing:.02em;
+  box-shadow:0 4px 0 rgba(0,0,0,.22);
+}
+.part2-launch:hover{filter:brightness(1.04)}
+.part2-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 18px}
+.part2-tab{
+  border:1px solid #53677f;background:#162337;color:#dce8f4;
+  padding:11px 14px;border-radius:9px;font-weight:900;
+}
+.part2-tab.active{background:#edf5fd;color:#152235;border-color:#edf5fd}
+.part2-tab:hover{border-color:#edf5fd;transform:translateY(-1px)}
+.part2-tab:focus-visible,.p2-wordbtn:focus-visible,#p2RunTest:focus-visible,#p2Export:focus-visible{outline:3px solid #fff;outline-offset:2px}
+.p2-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.p2-row{background:#142136;border:1px solid #41536a;border-radius:10px;padding:12px}
+.p2-label{display:inline-block;padding:4px 8px;border-radius:999px;font-size:11px;font-weight:900}
+.p2-label.personal{background:#203a59;color:#dcebff;border:1px solid var(--personal)}
+.p2-label.promotional{background:#4a3920;color:#ffe7b8;border:1px solid var(--promo)}
+.p2-label.spam{background:#4a2531;color:#ffd6df;border:1px solid var(--spam)}
+.p2-wordgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.p2-wordbtn{background:#111d2f;color:#dce8f4;border:1px solid #51647e;border-radius:8px;padding:10px;font-weight:850}
+.p2-wordbtn.active{background:#edf5fd;color:#152235;border-color:#fff}
+.p2-testlog{display:grid;gap:8px;margin-top:14px}
+.p2-testitem{background:#142136;border:1px solid #41536a;border-radius:9px;padding:10px}
+.p2-challenge{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.p2-challenge-group{background:#142136;border:1px solid #41536a;border-radius:11px;padding:14px}
+.p2-challenge-group h4{margin:0 0 10px}
+.p2-challenge-group textarea{
+ width:100%;min-height:74px;resize:vertical;background:#111d2f;color:#fff;border:1px solid #52647e;border-radius:8px;padding:10px;font:inherit
+}
+.p2-export{margin-top:18px;background:#1a283b;border:1px solid #41536a;border-radius:12px;padding:16px}
+.p2-export input{margin-top:8px}
+@media(max-width:820px){
+ .p2-grid,.p2-challenge{grid-template-columns:1fr}
+ .p2-wordgrid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+
 </style>
 </head>
 <body>
@@ -151,7 +198,7 @@ body{margin:0;background:var(--bg);color:var(--text)}
     <div class="tabs" id="tabs"></div>
   </section>
 
-  <main id="app"></main>
+  <main id="app"></main><section id="part2App" style="display:none"></section>
 </div>
 
 <script>
@@ -160,10 +207,13 @@ const pages = [
   {stage:2, title:"Train the Model", eyebrow:"Page 2", kind:"train"},
   {stage:3, title:"Test the Model", eyebrow:"Page 3", kind:"test"},
   {stage:4, title:"Inspect the Model", eyebrow:"Page 4", kind:"inspect"},
-  {stage:2, title:"Add More Training Data", eyebrow:"Page 5", kind:"retrain"},
-  {stage:3, title:"Test Again", eyebrow:"Page 6", kind:"test2"},
-  {stage:4, title:"Inspect Again", eyebrow:"Page 7", kind:"inspect2"},
-  {stage:5, title:"Evaluate", eyebrow:"Page 8", kind:"evaluate"}
+  {stage:2, title:"Add New Training Data", eyebrow:"Page 5", kind:"retrain"},
+  {stage:3, title:"Test the Same Messages Again", eyebrow:"Page 6", kind:"retest"},
+  {stage:4, title:"Inspect What Changed", eyebrow:"Page 7", kind:"inspect2"},
+  {stage:3, title:"Test New Messages", eyebrow:"Page 8", kind:"testnew"},
+  {stage:2, title:"Feed Answers Back In", eyebrow:"Page 9", kind:"autotrain"},
+  {stage:4, title:"Inspect the Feedback Loop", eyebrow:"Page 10", kind:"inspect3"},
+  {stage:5, title:"Evaluate", eyebrow:"Page 11", kind:"evaluate"}
 ];
 const labels=["Personal","Promotional","Spam"];
 const starter=[
@@ -188,13 +238,100 @@ const starter=[
  "Your delivery has been delayed",
  "Hey, I found your notebook"
 ];
+const retrainSet=[
+ "Free lunch is available after school","Your order has shipped today","Hey, can you save me a seat?",
+ "Claim your student reward now","Your package is waiting at the office","Special offer for members today",
+ "Your account needs attention","Dinner is free if you come over","Save 30% on your next order",
+ "Hey, your delivery came to my house","Limited offer ends tonight","Can you call me after practice?",
+ "Your prize is ready to claim","Free shipping this weekend","I saved your notebook for you",
+ "Your package delivery was delayed","Your account now has a new benefit","Are you free to study later?",
+ "Claim this special offer today","Your order is ready for pickup"
+];
+const testRound1=[
+ "Hey, your order is ready","Claim your free delivery","Your package is here","Save your seat tonight",
+ "Your account has a new offer","Dinner is free tonight","Click to claim your reward",
+ "Are you free after practice?","Special package for you","Your notebook is waiting"
+];
+const testRound3=[
+ "Free tickets are waiting for you","Hey, your package arrived","Claim your seat now",
+ "Your account includes a free reward","Save this for me after school",
+ "Special dinner offer tonight","Your order is waiting at the desk",
+ "Are you free to call later?","Claim your delivery today","Your prize package is ready"
+];
 let page=0;
 let inspectTab="model";
 let selected=Array(starter.length).fill("");
 let testSelected=Array(10).fill("");
-let test2Selected=Array(5).fill("");
+let retrainSelected=Array(20).fill("");
+let retestSelected=Array(10).fill("");
+let newTestSelected=Array(10).fill("");
 let inspectWord="free";
 let inspectResult=0;
+let part2Mode=false;
+let part2Tab="dataset";
+let p2SelectedWord="free";
+let p2Tests=[];
+let p2Draft="";
+let p2Challenge={
+  promotional:["","",""],
+  personal:["","",""],
+  spam:["","",""],
+  stump:["","",""]
+};
+
+const p2Dataset = [
+["Hey, are you free after school?","Personal"],
+["Can you call me when you're free?","Personal"],
+["Dinner at my place tonight?","Personal"],
+["I saved you a seat","Personal"],
+["Your order is here, come grab it","Personal"],
+["Your package should arrive today","Personal"],
+["Hey, your delivery came to my house","Personal"],
+["Are you coming to practice later?","Personal"],
+["Can you save my notebook for me?","Personal"],
+["Your jacket is waiting in my room","Personal"],
+["Free shipping on your next order","Promotional"],
+["Save 20% on your order today","Promotional"],
+["Your package is ready for pickup","Promotional"],
+["Claim your free trial today","Promotional"],
+["Limited-time offer just for you","Promotional"],
+["Your account now includes free delivery","Promotional"],
+["Special offer ends tonight","Promotional"],
+["Save big this weekend","Promotional"],
+["Your order qualifies for free shipping","Promotional"],
+["New deal available today","Promotional"],
+["Claim your free prize now","Spam"],
+["Your account has been locked","Spam"],
+["Your package could not be delivered","Spam"],
+["Click here to save your account","Spam"],
+["You have been selected for a special offer","Spam"],
+["Free reward waiting for you","Spam"],
+["Claim your reward today","Spam"],
+["Your delivery is on hold","Spam"],
+["Verify your account now","Spam"],
+["Prize package waiting for pickup","Spam"],
+["Hey, claim your jacket after school","Personal"],
+["Free lunch is available after school","Personal"],
+["Your account is ready","Personal"],
+["Save me a seat tonight","Personal"],
+["Your package is here","Personal"],
+["Special dinner offer tonight","Promotional"],
+["Free tickets for students today","Promotional"],
+["Claim your student discount","Promotional"],
+["Your order is waiting for pickup","Promotional"],
+["Save on delivery this week","Promotional"],
+["Your prize is ready to claim","Spam"],
+["Claim your delivery today","Spam"],
+["Your account needs attention now","Spam"],
+["Free prize package for you","Spam"],
+["Special reward waiting","Spam"],
+["Hey, your package arrived","Personal"],
+["Dinner is free tonight","Personal"],
+["Limited offer for your order","Promotional"],
+["Claim your account reward","Spam"],
+["Save your prize code now","Spam"]
+];
+
 
 function renderProcess(){
   const p=document.getElementById("process");
@@ -204,7 +341,7 @@ function renderProcess(){
 }
 function renderTabs(){
   const tabs=document.getElementById("tabs");
-  if(pages[page].kind==="inspect" || pages[page].kind==="inspect2"){
+  if(["inspect","inspect2","inspect3"].includes(pages[page].kind)){
     tabs.innerHTML=`<button class="tab ${inspectTab==="model"?"active":""}" data-tab="model">Model</button>
                     <button class="tab ${inspectTab==="results"?"active":""}" data-tab="results">Results</button>`;
     tabs.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>{inspectTab=b.dataset.tab;render()}));
@@ -222,53 +359,79 @@ function nav(){
  return `<div class="page-nav"><button class="secondary" id="backBtn" ${page===0?"disabled":""}>Back</button><button class="primary" id="nextBtn">${page===pages.length-1?"Finish":"Next"}</button></div>`;
 }
 function datasetPage(){
- return wrap(`<section class="panel"><h3>Label the training examples</h3><div class="small">These labels become the examples your model learns from.</div>
+ return wrap(`<button class="part2-launch" id="part2Launch">PART 2 → EXPLORE THE MODEL</button><section class="panel"><h3>Label the training examples</h3><div class="small">These labels become the examples your model learns from.</div>
  <div class="sentences">${starter.map((s,i)=>`<div class="sentence"><div class="txt">${i+1}. ${s}</div><div class="choices">${labels.map(l=>`<button class="choice ${l.toLowerCase()} ${selected[i]===l?"sel":""}" data-i="${i}" data-l="${l}">${l}</button>`).join("")}</div></div>`).join("")}</div>
  <div class="actions"><div class="count" id="labelCount">${selected.filter(Boolean).length}/20 labeled</div><button class="primary" id="datasetNext" ${selected.every(Boolean)?"":"disabled"}>Continue</button></div></section>`,
  "Start by creating the dataset. Every sentence needs a label before the model can learn from it.");
 }
-function trainPage(retrain=false){
- const trainingRows = retrain ? starter.map((s,i)=>{
-   const l=selected[i]||"Unlabeled";
-   const cls=l==="Personal"?"personal":l==="Promotional"?"promotional":l==="Spam"?"spam":"";
-   return `<div class="example ${cls}" style="display:flex;justify-content:space-between;gap:14px;align-items:center">
-     <span>${i+1}. ${s}</span>
-     <span class="labelpill ${cls}">${l}</span>
-   </div>`;
- }).join("") : "";
+function trainPage(mode="initial"){
+ const isInitial=mode==="initial";
+ const isRetrain=mode==="retrain";
+ const isAuto=mode==="auto";
 
- return wrap(`<section class="panel"><h3>${retrain?"Retrain the Model":"Ready to train"}</h3>
- <div class="small">${retrain?"Before retraining, look at the exact dataset the model is about to learn from again.":"Training converts your labeled examples into a statistical model."}</div>
+ if(isRetrain){
+   return wrap(`<section class="panel">
+     <h3>Add 20 new training examples</h3>
+     <div class="small">Label every new sentence. These labels will be added to the original dataset before the model retrains.</div>
+     <div class="sentences">${retrainSet.map((s,i)=>`<div class="sentence">
+       <div class="txt">${i+1}. ${s}</div>
+       <div class="choices">${labels.map(l=>`<button class="choice ${l.toLowerCase()} ${retrainSelected[i]===l?"sel":""}" data-retrain="${i}" data-l="${l}">${l}</button>`).join("")}</div>
+     </div>`).join("")}</div>
+     <div class="actions">
+       <div class="count">${retrainSelected.filter(Boolean).length}/20 labeled</div>
+       <button class="primary train-big" id="retrainBtn" ${retrainSelected.every(Boolean)?"":"disabled"}>RETRAIN MODEL</button>
+     </div>
+   </section>`,
+   "You are expanding the training dataset. Your labels become new training data.");
+ }
 
- ${retrain ? `
- <div class="results-box" style="margin-top:16px">
-   <b>Current Training Dataset</b>
-   <div class="small" style="margin-top:6px">These are the 20 sentences and labels your model will use when it retrains.</div>
- </div>
- <div class="dataset" style="margin-top:14px">${trainingRows}</div>
- ` : `
+ if(isAuto){
+   return wrap(`<section class="panel">
+     <h3>Your test answers are becoming training data</h3>
+     <div class="small">No new labeling this time. The 10 answers you just gave are automatically added to the dataset.</div>
+     <div class="results-box" style="margin-top:16px">
+       <b>10 new examples ready to add</b>
+       <div class="small" style="margin-top:8px">These come directly from your most recent test answers.</div>
+     </div>
+     <div class="dataset" style="margin-top:14px">${testRound3.map((s,i)=>{
+       const l=newTestSelected[i]||"Unlabeled";
+       const cls=l==="Personal"?"personal":l==="Promotional"?"promotional":l==="Spam"?"spam":"";
+       return `<div class="example ${cls}" style="display:flex;justify-content:space-between;gap:14px;align-items:center">
+         <span>${i+1}. ${s}</span><span class="labelpill ${cls}">${l}</span>
+       </div>`;
+     }).join("")}</div>
+     <div class="actions"><div></div><button class="primary train-big" id="autoTrainBtn">ADD ANSWERS + RETRAIN</button></div>
+   </section>`,
+   "This is the feedback loop: your recent answers are being fed back into the model as new labeled examples.");
+ }
+
+ return wrap(`<section class="panel"><h3>Ready to train</h3>
+ <div class="small">Training converts your labeled examples into a statistical model.</div>
  <div class="results-box" style="margin-top:16px"><b>20 labeled examples loaded</b>
-   <div class="small" style="margin-top:8px"><span class="labelpill personal">Personal</span> <span class="labelpill promotional">Promotional</span> <span class="labelpill spam">Spam</span></div>
- </div>
- `}
-
- <div class="actions"><div></div><button class="primary train-big" id="trainBtn">${retrain?"RETRAIN MODEL":"TRAIN MODEL"}</button></div></section>`,
- retrain?"Look back at the training data before you run the model again.":"Nothing magical happens here. The model counts patterns in the labeled data and turns those patterns into probabilities.");
+ <div class="small" style="margin-top:8px"><span class="labelpill personal">Personal</span> <span class="labelpill promotional">Promotional</span> <span class="labelpill spam">Spam</span></div></div>
+ <div class="actions"><div></div><button class="primary train-big" id="trainBtn">TRAIN MODEL</button></div></section>`,
+ "Nothing magical happens here. The model counts patterns in the labeled data and turns those patterns into probabilities.");
 }
-function testPage(second=false){
- const msgs = second ? [
-   "Free tickets for students today","Your account is ready","Hey, claim your jacket after school","Special delivery offer","Your prize is waiting"
- ] : [
-   "Hey, your order is ready","Claim your free delivery","Your package is here","Save your seat tonight","Your account has a new offer",
-   "Dinner is free tonight","Click to claim your reward","Are you free after practice?","Special package for you","Your notebook is waiting"
- ];
- const answers = second ? test2Selected : testSelected;
- return wrap(`<section class="panel"><h3>${second?"Try the improved model":"Compare yourself to the model"}</h3>
+function testPage(mode="first"){
+ let msgs, answers, blurb, title;
+ if(mode==="retest"){
+   msgs=testRound1; answers=retestSelected;
+   title="Test the same 10 messages again";
+   blurb="The messages are identical to Round 1. The only thing that changed is the training data.";
+ } else if(mode==="new"){
+   msgs=testRound3; answers=newTestSelected;
+   title="Test 10 brand-new messages";
+   blurb="Choose your own label first. These answers will matter again in the next step.";
+ } else {
+   msgs=testRound1; answers=testSelected;
+   title="Compare yourself to the model";
+   blurb="These sentences were not in the training dataset. Some words are familiar to the model. Some are not.";
+ }
+ return wrap(`<section class="panel"><h3>${title}</h3>
  <div class="small">Choose your own label for every sentence.</div>
- <div class="sentences">${msgs.map((s,i)=>`<div class="sentence"><div class="txt">${i+1}. ${s}</div><div class="choices">${labels.map(l=>`<button class="choice ${l.toLowerCase()} ${answers[i]===l?"sel":""}" data-test="${second?"2":"1"}" data-i="${i}" data-l="${l}">${l}</button>`).join("")}</div></div>`).join("")}</div>
+ <div class="sentences">${msgs.map((s,i)=>`<div class="sentence"><div class="txt">${i+1}. ${s}</div><div class="choices">${labels.map(l=>`<button class="choice ${l.toLowerCase()} ${answers[i]===l?"sel":""}" data-testmode="${mode}" data-i="${i}" data-l="${l}">${l}</button>`).join("")}</div></div>`).join("")}</div>
  <div class="actions"><div class="count">${answers.filter(Boolean).length}/${msgs.length} labeled</div><button class="primary" id="testNext" ${answers.every(Boolean)?"":"disabled"}>Continue</button></div>
- </section>`,
- second?"Test a new batch of sentences after retraining.":"These sentences were not in the training dataset. Some words are familiar to the model. Some are not.");
+ </section>`, blurb);
 }
 function inspectModel(){
  const wordStats={
@@ -302,26 +465,204 @@ function inspectResults(){
  <div class="barrow"><span class="labelpill spam">Spam</span><div class="track"><div class="fill spam" style="width:${it.scores[2]/mx*100}%"></div></div><b>${it.scores[2]}</b></div>
  <div style="margin-top:14px;font-size:22px;font-weight:900">Prediction: ${it.pred}</div></div></section>`;
 }
-function inspectPage(second=false){
- return wrap((inspectTab==="model"?inspectModel():inspectResults())+nav(),
- second?"Inspect what changed after the second round of training.":"Now open the model and look at what training actually created.");
+function inspectPage(round=1){
+ const intro = round===1
+  ? "Now open the model and look at what training actually created."
+  : round===2
+  ? "Compare what changed after adding 20 more labeled examples."
+  : "Inspect what happened after your own recent answers were fed back into training.";
+ return wrap((inspectTab==="model"?inspectModel():inspectResults())+nav(), intro);
 }
 function evaluatePage(){
- return wrap(`<section class="panel"><h3>Evaluate the model</h3><div class="small">Compare the first and second rounds. What improved? What stayed messy?</div>
- <div class="results-box"><b>Reflection prompts</b><ul><li>Which predictions changed after retraining?</li><li>Which new examples likely caused those changes?</li><li>What words remained ambiguous?</li><li>Did more training data always make the model better?</li></ul></div></section>`,
- "The final step is not just checking whether the model was right. It is deciding what the results tell you about the model and its data.");
+ return wrap(`<section class="panel"><h3>Evaluate the full experiment</h3>
+ <div class="small">You trained the model three different ways. Now compare what each round taught you.</div>
+ <div class="results-box">
+   <b>Reflection prompts</b>
+   <ul>
+     <li>How did adding 20 new labeled examples change predictions on the same 10 test messages?</li>
+     <li>Which words became more or less useful after retraining?</li>
+     <li>What happened when your most recent test answers were fed back in as new training data?</li>
+     <li>What could happen if a wrong human label gets added to the dataset?</li>
+     <li>What could happen if a model's own wrong prediction were automatically fed back into future training?</li>
+   </ul>
+ </div></section>`,
+ "The final step is evaluation: not just whether the model was right, but what the results reveal about training data, feedback, and error.");
 }
+
+function p2Esc(text){
+  return String(text??"")
+    .replace(/&/g,"&amp;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;");
+}
+function p2Words(text){
+  const stop=new Set(["a","an","the","is","at","on","in","of","to","and"]);
+  return String(text||"")
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g," ")
+    .split(/\s+/)
+    .filter(w=>w && !stop.has(w));
+}
+function buildP2Counts(){
+  const c={};
+  p2Dataset.forEach(([text,label])=>{
+    p2Words(text).forEach(w=>{
+      c[w] ||= {Personal:0,Promotional:0,Spam:0};
+      c[w][label]++;
+    });
+  });
+  return c;
+}
+function p2Predict(text){
+  const counts=buildP2Counts();
+  const labs=["Personal","Promotional","Spam"];
+  const totals={}, docs={};
+  labs.forEach(l=>{
+    totals[l]=Object.values(counts).reduce((s,o)=>s+(o[l]||0),0);
+    docs[l]=p2Dataset.filter(x=>x[1]===l).length;
+  });
+  const V=Math.max(1,Object.keys(counts).length);
+  const toks=p2Words(text);
+  const log={};
+  labs.forEach(l=>{
+    log[l]=Math.log(docs[l]/p2Dataset.length);
+    toks.forEach(w=>{
+      if(counts[w]) log[l]+=Math.log(((counts[w][l]||0)+1)/(totals[l]+V));
+    });
+  });
+  const max=Math.max(...labs.map(l=>log[l]));
+  const ex={}; let sum=0;
+  labs.forEach(l=>{ex[l]=Math.exp(log[l]-max);sum+=ex[l]});
+  const probs={}; labs.forEach(l=>probs[l]=ex[l]/sum);
+  const pred=labs.slice().sort((a,b)=>probs[b]-probs[a])[0];
+  return {pred,probs,toks,counts};
+}
+function renderPart2(){
+  document.getElementById("app").style.display="none";
+  const root=document.getElementById("part2App");
+  root.style.display="block";
+  const tabs=[
+    ["dataset","Dataset"],
+    ["model","Model"],
+    ["test","Try Sentences"],
+    ["challenge","Challenge + Export"]
+  ];
+  let body="";
+  if(part2Tab==="dataset"){
+    body=`<section class="intro"><div class="eyebrow">Part 2</div><h2>Explore a bigger dataset.</h2><p>Start with 50 labeled examples. Look for overlap between the three categories.</p></section>
+    <section class="panel"><div class="p2-grid">${p2Dataset.map(([s,l],i)=>`<div class="p2-row"><div style="font-weight:800">${i+1}. ${s}</div><div style="margin-top:8px"><span class="p2-label ${l.toLowerCase()}">${l}</span></div></div>`).join("")}</div></section>`;
+  } else if(part2Tab==="model"){
+    const counts=buildP2Counts();
+    const vocab=Object.keys(counts).sort();
+    const st=counts[p2SelectedWord]||{Personal:0,Promotional:0,Spam:0};
+    const mx=Math.max(1,st.Personal,st.Promotional,st.Spam);
+    body=`<section class="intro"><div class="eyebrow">Part 2</div><h2>Inspect the model.</h2><p>Click a word to see how often it appears with each label.</p></section>
+    <section class="panel"><div class="inspect-grid">
+      <div><h3>Learned words</h3><div class="p2-wordgrid">${vocab.map(w=>`<button type="button" class="p2-wordbtn ${w===p2SelectedWord?"active":""}" data-p2word="${w}">${w}</button>`).join("")}</div></div>
+      <div><h3>“${p2SelectedWord}”</h3>
+      ${["Personal","Promotional","Spam"].map(l=>`<div class="barrow"><span class="labelpill ${l.toLowerCase()}">${l}</span><div class="track"><div class="fill ${l.toLowerCase()}" style="width:${(st[l]/mx)*100}%"></div></div><b>${st[l]}</b></div>`).join("")}
+      </div>
+    </div></section>`;
+  } else if(part2Tab==="test"){
+    body=`<section class="intro"><div class="eyebrow">Part 2</div><h2>Try your own sentences.</h2><p>Type anything. Sortball will show the prediction and the category probabilities.</p></section>
+    <section class="panel"><div class="test-grid"><input id="p2TestInput" value="${p2Draft.replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;")}" placeholder="Type a sentence to test"><button type="button" class="primary train-big" id="p2RunTest">TEST IT</button></div>
+    <div class="p2-testlog">${p2Tests.map((t,i)=>`<div class="p2-testitem"><b>${i+1}. ${p2Esc(t.text)}</b><div style="margin-top:7px">Prediction: <span class="p2-label ${t.pred.toLowerCase()}">${t.pred}</span></div><div class="small" style="margin-top:6px">Personal ${Math.round(t.probs.Personal*100)}% · Promotional ${Math.round(t.probs.Promotional*100)}% · Spam ${Math.round(t.probs.Spam*100)}%</div></div>`).join("") || '<div class="small">No tests yet.</div>'}</div>
+    </section>`;
+  } else {
+    const makeGroup=(key,title)=>`<div class="p2-challenge-group"><h4>${title}</h4>${p2Challenge[key].map((v,i)=>`<textarea data-challenge="${key}" data-idx="${i}" placeholder="${i+1}. Write a sentence">${v}</textarea>`).join("")}</div>`;
+    body=`<section class="intro"><div class="eyebrow">Part 2</div><h2>Challenge the model.</h2><p>Create examples that should fit each category, then try to stump it.</p></section>
+    <section class="panel"><div class="p2-challenge">
+      ${makeGroup("promotional","3 Promotional sentences")}
+      ${makeGroup("personal","3 Personal sentences")}
+      ${makeGroup("spam","3 Spam sentences")}
+      ${makeGroup("stump","3 sentences that stump it")}
+    </div>
+    <div class="p2-export"><h3>Sign + Export</h3><div class="small">Your export includes every sentence you tested and all 12 challenge sentences.</div>
+      <input id="p2Name" placeholder="Your name"><div class="small" id="p2ExportStatus" style="margin-top:8px"></div>
+      <div class="actions"><div></div><button type="button" class="primary train-big" id="p2Export">EXPORT WORK</button></div>
+    </div></section>`;
+  }
+  root.innerHTML=`<div class="shell" style="padding-top:0"><div class="tabs" style="margin-top:12px">${tabs.map(([k,l])=>`<button type="button" class="part2-tab ${part2Tab===k?"active":""}" data-p2tab="${k}">${l}</button>`).join("")}<button type="button" class="part2-tab" id="p2Back">← Back to Part 1</button></div>${body}</div>`;
+
+  root.querySelectorAll("[data-p2tab]").forEach(b=>b.addEventListener("click",()=>{part2Tab=b.dataset.p2tab;renderPart2()}));
+  const back=root.querySelector("#p2Back"); if(back) back.addEventListener("click",()=>{part2Mode=false;root.style.display="none";document.getElementById("app").style.display="block";render()});
+  root.querySelectorAll("[data-p2word]").forEach(b=>b.addEventListener("click",()=>{p2SelectedWord=b.dataset.p2word;renderPart2()}));
+  const run=root.querySelector("#p2RunTest");
+  const testInput=root.querySelector("#p2TestInput");
+  const runP2Test=()=>{
+    if(!testInput) return;
+    const text=testInput.value.trim();
+    if(!text) return;
+    const r=p2Predict(text);
+    p2Tests.push({text,pred:r.pred,probs:r.probs});
+    p2Draft="";
+    renderPart2();
+  };
+  if(run) run.addEventListener("click",runP2Test);
+  if(testInput){
+    testInput.addEventListener("input",()=>{p2Draft=testInput.value;});
+    testInput.addEventListener("keydown",e=>{
+      if(e.key==="Enter"){
+        e.preventDefault();
+        runP2Test();
+      }
+    });
+  }
+  root.querySelectorAll("[data-challenge]").forEach(t=>t.addEventListener("input",()=>{
+    p2Challenge[t.dataset.challenge][+t.dataset.idx]=t.value;
+  }));
+  const exp=root.querySelector("#p2Export");
+  if(exp) exp.addEventListener("click",()=>{
+    root.querySelectorAll("[data-challenge]").forEach(t=>{p2Challenge[t.dataset.challenge][+t.dataset.idx]=t.value.trim();});
+    const name=(root.querySelector("#p2Name").value||"").trim();
+    const status=root.querySelector("#p2ExportStatus");
+    const allChallenges=Object.values(p2Challenge).flat();
+    if(!name){
+      if(status) status.textContent="Type your name before exporting.";
+      return;
+    }
+    if(allChallenges.some(s=>!s)){
+      if(status) status.textContent="Complete all 12 challenge sentences before exporting.";
+      return;
+    }
+    if(status) status.textContent="Preparing export...";
+    const lines=[];
+    lines.push("SORTBALL PART 2");
+    lines.push("Student: "+name);
+    lines.push("");
+    lines.push("TESTED SENTENCES");
+    if(!p2Tests.length) lines.push("(none)");
+    p2Tests.forEach((t,i)=>lines.push(`${i+1}. ${t.text} | Prediction: ${t.pred} | Personal ${Math.round(t.probs.Personal*100)}% | Promotional ${Math.round(t.probs.Promotional*100)}% | Spam ${Math.round(t.probs.Spam*100)}%`));
+    lines.push("");
+    lines.push("CHALLENGE SENTENCES");
+    [["promotional","PROMOTIONAL"],["personal","PERSONAL"],["spam","SPAM"],["stump","STUMP THE MODEL"]].forEach(([k,title])=>{
+      lines.push(title);
+      p2Challenge[k].forEach((s,i)=>lines.push(`${i+1}. ${s}`));
+      lines.push("");
+    });
+    const blob=new Blob([lines.join("\\n")],{type:"text/plain"});
+    const a=document.createElement("a");
+    a.href=URL.createObjectURL(blob);
+    a.download=(name.replace(/[^a-z0-9]+/gi,"_")||"student")+"_sortball_part2.txt";
+    document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),500);
+  });
+}
+
 function render(){
  renderProcess(); renderTabs();
  let html="";
  switch(pages[page].kind){
   case "dataset": html=datasetPage(); break;
-  case "train": html=trainPage(false); break;
-  case "test": html=testPage(false); break;
-  case "inspect": html=inspectPage(false); break;
-  case "retrain": html=trainPage(true); break;
-  case "test2": html=testPage(true); break;
-  case "inspect2": html=inspectPage(true); break;
+  case "train": html=trainPage("initial"); break;
+  case "test": html=testPage("first"); break;
+  case "inspect": html=inspectPage(1); break;
+  case "retrain": html=trainPage("retrain"); break;
+  case "retest": html=testPage("retest"); break;
+  case "inspect2": html=inspectPage(2); break;
+  case "testnew": html=testPage("new"); break;
+  case "autotrain": html=trainPage("auto"); break;
+  case "inspect3": html=inspectPage(3); break;
   case "evaluate": html=evaluatePage(); break;
  }
  document.getElementById("app").innerHTML=html;
@@ -329,16 +670,30 @@ function render(){
  document.querySelectorAll(".choice[data-i]").forEach(btn=>btn.addEventListener("click",()=>{
    selected[+btn.dataset.i]=btn.dataset.l; render();
  }));
+ const p2Launch=document.getElementById("part2Launch");
+ if(p2Launch) p2Launch.addEventListener("click",()=>{part2Mode=true;renderPart2()});
  const datasetNext=document.getElementById("datasetNext");
  if(datasetNext) datasetNext.addEventListener("click",next);
 
- document.querySelectorAll("[data-test]").forEach(btn=>btn.addEventListener("click",()=>{
-   const arr=btn.dataset.test==="2"?test2Selected:testSelected;
+ document.querySelectorAll("[data-testmode]").forEach(btn=>btn.addEventListener("click",()=>{
+   let arr=testSelected;
+   if(btn.dataset.testmode==="retest") arr=retestSelected;
+   if(btn.dataset.testmode==="new") arr=newTestSelected;
    arr[+btn.dataset.i]=btn.dataset.l;
    render();
  }));
  const testNext=document.getElementById("testNext");
  if(testNext) testNext.addEventListener("click",next);
+
+ document.querySelectorAll("[data-retrain]").forEach(btn=>btn.addEventListener("click",()=>{
+   retrainSelected[+btn.dataset.retrain]=btn.dataset.l;
+   render();
+ }));
+ const retrainBtn=document.getElementById("retrainBtn");
+ if(retrainBtn) retrainBtn.addEventListener("click",()=>{retrainBtn.textContent="RETRAINING...";setTimeout(next,550)});
+
+ const autoTrainBtn=document.getElementById("autoTrainBtn");
+ if(autoTrainBtn) autoTrainBtn.addEventListener("click",()=>{autoTrainBtn.textContent="ADDING DATA...";setTimeout(next,550)});
 
  document.querySelectorAll("[data-word]").forEach(btn=>btn.addEventListener("click",()=>{
    inspectWord=btn.dataset.word;
