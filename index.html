@@ -164,6 +164,17 @@ body{margin:0;background:var(--bg);color:var(--text)}
 .p2-wordbtn{background:#111d2f;color:#dce8f4;border:1px solid #51647e;border-radius:8px;padding:10px;font-weight:850}
 .p2-wordbtn.active{background:#edf5fd;color:#152235;border-color:#fff}
 .p2-testlog{display:grid;gap:8px;margin-top:14px}
+.p2-test-detail{margin-top:16px;background:#111d2f;border:1px solid #51647e;border-radius:12px;padding:16px}
+.p2-tokenline{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 16px}
+.p2-token{padding:7px 10px;border-radius:7px;font-weight:900;background:#2a3a4d}
+.p2-token.known{border:1px solid #6c819b}
+.p2-token.unknown{opacity:.38;text-decoration:line-through}
+.p2-wordbreakdown{display:grid;gap:10px;margin-top:12px}
+.p2-wordcard{background:#142136;border:1px solid #41536a;border-radius:10px;padding:12px}
+.p2-wordcard h4{margin:0 0 10px;font-size:17px}
+.p2-minirow{display:grid;grid-template-columns:105px 1fr 34px;gap:8px;align-items:center;margin:7px 0}
+.p2-scoretitle{margin-top:18px;padding-top:14px;border-top:1px solid #41536a;font-weight:900}
+
 .p2-testitem{background:#142136;border:1px solid #41536a;border-radius:9px;padding:10px}
 .p2-challenge{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
 .p2-challenge-group{background:#142136;border:1px solid #41536a;border-radius:11px;padding:14px}
@@ -272,6 +283,7 @@ let part2Tab="dataset";
 let p2SelectedWord="free";
 let p2Tests=[];
 let p2Draft="";
+let p2CurrentResult=null;
 let p2Challenge={
   promotional:["","",""],
   personal:["","",""],
@@ -565,9 +577,49 @@ function renderPart2(){
       </div>
     </div></section>`;
   } else if(part2Tab==="test"){
-    body=`<section class="intro"><div class="eyebrow">Part 2</div><h2>Try your own sentences.</h2><p>Type anything. Sortball will show the prediction and the category probabilities.</p></section>
+    let detail="";
+    if(p2CurrentResult){
+      const r=p2CurrentResult;
+      const labs=["Personal","Promotional","Spam"];
+      const countData=r.counts;
+      const known=r.toks.filter(w=>countData[w]);
+      const tokens=r.toks.map(w=>`<span class="p2-token ${countData[w]?"known":"unknown"}">${p2Esc(w)}</span>`).join("");
+      const wordCards=known.map(w=>{
+        const c=countData[w];
+        const mx=Math.max(1,c.Personal||0,c.Promotional||0,c.Spam||0);
+        return `<div class="p2-wordcard">
+          <h4>“${p2Esc(w)}”</h4>
+          ${labs.map(l=>`<div class="p2-minirow">
+            <span class="p2-label ${l.toLowerCase()}">${l}</span>
+            <div class="track"><div class="fill ${l.toLowerCase()}" style="width:${((c[l]||0)/mx)*100}%"></div></div>
+            <b>${c[l]||0}</b>
+          </div>`).join("")}
+        </div>`;
+      }).join("") || `<div class="small">The model does not recognize any of these words.</div>`;
+
+      const maxProb=Math.max(r.probs.Personal,r.probs.Promotional,r.probs.Spam,0.0001);
+      detail=`<div class="p2-test-detail">
+        <h3>How the model read this sentence</h3>
+        <div class="small">Recognized words are bright. Unknown words are dimmed.</div>
+        <div class="p2-tokenline">${tokens}</div>
+
+        <h3 style="margin-top:8px">Word-by-word evidence</h3>
+        <div class="p2-wordbreakdown">${wordCards}</div>
+
+        <div class="p2-scoretitle">Combined model scores</div>
+        ${labs.map(l=>`<div class="barrow">
+          <span class="labelpill ${l.toLowerCase()}">${l}</span>
+          <div class="track"><div class="fill ${l.toLowerCase()}" style="width:${(r.probs[l]/maxProb)*100}%"></div></div>
+          <b>${Math.round(r.probs[l]*100)}%</b>
+        </div>`).join("")}
+        <div style="margin-top:14px;font-size:23px;font-weight:950">Prediction: <span class="p2-label ${r.pred.toLowerCase()}">${r.pred}</span></div>
+      </div>`;
+    }
+
+    body=`<section class="intro"><div class="eyebrow">Part 2</div><h2>Try your own sentences.</h2><p>Type anything. Sortball will break down the words it recognizes, show what each word contributes, and then combine the evidence into a prediction.</p></section>
     <section class="panel"><div class="test-grid"><input id="p2TestInput" value="${p2Draft.replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;")}" placeholder="Type a sentence to test"><button type="button" class="primary train-big" id="p2RunTest">TEST IT</button></div>
-    <div class="p2-testlog">${p2Tests.map((t,i)=>`<div class="p2-testitem"><b>${i+1}. ${p2Esc(t.text)}</b><div style="margin-top:7px">Prediction: <span class="p2-label ${t.pred.toLowerCase()}">${t.pred}</span></div><div class="small" style="margin-top:6px">Personal ${Math.round(t.probs.Personal*100)}% · Promotional ${Math.round(t.probs.Promotional*100)}% · Spam ${Math.round(t.probs.Spam*100)}%</div></div>`).join("") || '<div class="small">No tests yet.</div>'}</div>
+    ${detail}
+    <div class="p2-testlog" style="margin-top:18px"><h3>Test History</h3>${p2Tests.map((t,i)=>`<div class="p2-testitem"><b>${i+1}. ${p2Esc(t.text)}</b><div style="margin-top:7px">Prediction: <span class="p2-label ${t.pred.toLowerCase()}">${t.pred}</span></div><div class="small" style="margin-top:6px">Personal ${Math.round(t.probs.Personal*100)}% · Promotional ${Math.round(t.probs.Promotional*100)}% · Spam ${Math.round(t.probs.Spam*100)}%</div></div>`).join("") || '<div class="small">No tests yet.</div>'}</div>
     </section>`;
   } else {
     const makeGroup=(key,title)=>`<div class="p2-challenge-group"><h4>${title}</h4>${p2Challenge[key].map((v,i)=>`<textarea data-challenge="${key}" data-idx="${i}" placeholder="${i+1}. Write a sentence">${v}</textarea>`).join("")}</div>`;
@@ -595,6 +647,7 @@ function renderPart2(){
     const text=testInput.value.trim();
     if(!text) return;
     const r=p2Predict(text);
+    p2CurrentResult={text,pred:r.pred,probs:r.probs,toks:r.toks,counts:r.counts};
     p2Tests.push({text,pred:r.pred,probs:r.probs});
     p2Draft="";
     renderPart2();
